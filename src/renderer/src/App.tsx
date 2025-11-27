@@ -14,7 +14,7 @@ function App(): React.JSX.Element {
         {view === 'dashboard' && <Dashboard onCreateClick={() => setView('create')} />}
         {view === 'create' && <CreateFileForm />}
         {view === 'settings' && <Settings />}
-        {view === 'archive' && <div className="p-8">Archive Browser (Coming Soon)</div>}
+        {view === 'archive' && <Dashboard onCreateClick={() => setView('create')} title="归档库" />}
       </main>
     </div>
   )

@@ -56,22 +56,34 @@ export function CreateFileForm() {
     );
 
     const handleCreate = async () => {
+        if (!filename.trim()) {
+            alert('请输入文件名 (Please enter a filename)');
+            return;
+        }
+
         try {
             console.log('Creating file:', { type: selectedType, filename, date, tags });
             // @ts-ignore
             const result = await window.electron.ipcRenderer.invoke('create-file', {
-                type: selectedType,
+                type: {
+                    id: selectedType.id,
+                    name: selectedType.name,
+                    ext: selectedType.ext
+                },
                 filename,
                 date,
                 tags
             });
             console.log('File created:', result);
+            alert('文件创建成功 (File created successfully)!');
+
             // Optional: Show success notification or clear form
             setFilename('');
             setTags([]);
             loadTags(); // Refresh tags to include new ones
         } catch (error) {
             console.error('Failed to create file:', error);
+            alert(`创建失败 (Failed to create): ${error}`);
         }
     };
 

@@ -1,4 +1,5 @@
 import { getDB } from './db';
+import fs from 'fs';
 
 export async function getFiles(filters: { search?: string; tag?: string; type?: string; date?: string } = {}) {
   const db = getDB();
@@ -56,4 +57,37 @@ export async function getTags() {
   
   const rows = db.prepare('SELECT * FROM tags ORDER BY usage_count DESC, created_at DESC').all();
   return rows;
+}
+export async function deleteFile(id: number) {
+  const db = getDB();
+  if (!db) return { success: false, error: 'Database not initialized' };
+
+  try {
+    // 1. Get file path
+    const file = db.prepare('SELECT path FROM files WHERE id = ?').get(id) as { path: string };
+    if (!file) {
+      return { success: false, error: 'File not found' };
+    }
+
+    // 2. Delete from DB (Cascade delete should handle tags if configured, but we'll do manual cleanup just in case or rely on FK)
+    // Assuming simple delete for now.
+    db.prepare('DELETE FROM files WHERE id = ?').run(id);
+    db.prepare('DELETE FROM file_tags WHERE file_id = ?').run(id);
+
+    // 3. Delete from filesystem
+    if (fs.existsSync(file.path)) {
+        try {
+            fs.unlinkSync(file.path);
+        } catch (e) {
+            console.error('Failed to delete file from disk:', e);
+            // Continue to delete from DB even if file delete fails? 
+            // Or maybe just log it. 
+        }
+    }
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Delete failed:', error);
+    return { success: false, error: error.message };
+  }
 }

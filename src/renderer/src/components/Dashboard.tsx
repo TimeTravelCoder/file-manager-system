@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, FileText, Table, Presentation, FileType, Code, Plus, Clock } from 'lucide-react';
+import { Search, Filter, FileText, Table, Presentation, FileType, Code, Plus, Clock, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface FileRecord {
     id: number;
     filename: string;
+    path: string;
     extension: string;
     created_at: string;
     status: string;
     tags: string[];
 }
 
-export function Dashboard({ onCreateClick }: { onCreateClick: () => void }) {
+export function Dashboard({ onCreateClick, title = "我的文件" }: { onCreateClick: () => void; title?: string }) {
     const [files, setFiles] = useState<FileRecord[]>([]);
     const [search, setSearch] = useState('');
     const [filterType, setFilterType] = useState('');
@@ -45,14 +46,22 @@ export function Dashboard({ onCreateClick }: { onCreateClick: () => void }) {
     return (
         <div className="p-8 max-w-5xl mx-auto bg-gray-50 min-h-screen">
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold text-gray-800">我的文件</h1>
-                <button
-                    onClick={onCreateClick}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
-                >
-                    <Plus className="w-5 h-5" />
-                    新建文件
-                </button>
+                <h1 className="text-3xl font-bold text-gray-800">{title}</h1>
+                <div className="flex gap-2">
+                    <button
+                        onClick={loadFiles}
+                        className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                    >
+                        刷新
+                    </button>
+                    <button
+                        onClick={onCreateClick}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                        <Plus className="w-5 h-5" />
+                        新建文件
+                    </button>
+                </div>
             </div>
 
             <div className="flex gap-4 mb-6">
@@ -130,7 +139,40 @@ export function Dashboard({ onCreateClick }: { onCreateClick: () => void }) {
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
-                                    打开
+                                    <div className="flex items-center gap-3">
+                                        <button onClick={async (e) => {
+                                            e.stopPropagation();
+                                            // @ts-ignore
+                                            const result = await window.electron.ipcRenderer.invoke('open-file', file.path);
+                                            if (!result.success) {
+                                                alert('无法打开文件: ' + result.error);
+                                            }
+                                        }}>打开</button>
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                if (confirm('确定要删除这个文件吗？此操作不可恢复。\n(Are you sure you want to delete this file?)')) {
+                                                    try {
+                                                        // @ts-ignore
+                                                        const result = await window.electron.ipcRenderer.invoke('delete-file', file.id);
+                                                        if (result.success) {
+                                                            loadFiles(); // Refresh list
+                                                        } else {
+                                                            alert('删除失败: ' + result.error);
+                                                        }
+                                                    } catch (error) {
+                                                        console.error('Delete failed:', error);
+                                                        alert('删除出错');
+                                                    }
+                                                }
+                                            }}
+                                            className="text-red-500 hover:text-red-700"
+                                            title="删除文件"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            <span className="text-xs">删除</span>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

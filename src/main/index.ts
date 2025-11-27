@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -69,6 +69,13 @@ app.whenReady().then(() => {
     return await getFiles(filters)
   })
 
+  ipcMain.handle('delete-file', async (_, id) => {
+    // Import deleteFile dynamically or add it to imports
+    // Better to add to imports at top, but for now let's assume it's imported
+    const { deleteFile } = require('./fileManager');
+    return await deleteFile(id)
+  })
+
   ipcMain.handle('get-tags', async () => {
     return await getTags()
   })
@@ -80,6 +87,22 @@ app.whenReady().then(() => {
 
   ipcMain.handle('save-settings', async (_, settings) => {
     return await saveSettings(settings)
+  })
+
+  ipcMain.handle('select-directory', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      properties: ['openDirectory']
+    })
+    if (canceled) {
+      return null
+    } else {
+      return filePaths[0]
+    }
+  })
+
+  ipcMain.handle('open-file', async (_, path) => {
+    const error = await shell.openPath(path)
+    return { success: !error, error }
   })
 
   createWindow()

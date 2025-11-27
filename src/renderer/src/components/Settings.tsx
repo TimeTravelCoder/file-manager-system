@@ -66,7 +66,16 @@ export function Settings() {
                                     className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                     placeholder="C:\Users\Documents\FileArchive"
                                 />
-                                <button className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600">
+                                <button
+                                    onClick={async () => {
+                                        // @ts-ignore
+                                        const path = await window.electron.ipcRenderer.invoke('select-directory');
+                                        if (path) {
+                                            setSettings({ ...settings, archivePath: path });
+                                        }
+                                    }}
+                                    className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600"
+                                >
                                     <FolderOpen className="w-5 h-5" />
                                 </button>
                             </div>
